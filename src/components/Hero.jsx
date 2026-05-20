@@ -43,7 +43,7 @@ function SocialProof() {
     const label = formatCount(data.total)
 
     return (
-        <div className="flex items-center gap-3 pt-2">
+        <div className="flex items-center gap-3 pt-2 pb-3">
             <div className="flex -space-x-2">
                 {data.avatars.length > 0
                     ? data.avatars.map((u, i) => (
@@ -196,7 +196,7 @@ export default function Hero() {
                     {/* Left — Text */}
                     <div className="space-y-8 flex flex-col items-center text-center lg:items-start lg:text-left z-10 relative">
                         <div className="space-y-2">
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-accent/20 bg-accent/5 mb-6">
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-accent/20 bg-accent/5 mb-6 mt-3">
                                 <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                                 <span className="font-satoshi text-xs font-medium text-accent-light tracking-wide">
                                     The marketplace for AI skill files

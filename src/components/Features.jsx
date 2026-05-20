@@ -150,7 +150,7 @@ export default function Features() {
             <div ref={trackRef} className="features-pin-track">
 
                 {/* ── Sticky viewport — pinned until track is fully scrolled ── */}
-                <div className="features-pin-sticky">
+                <div className="features-pin-sticky" style={{height: 'fit-content'}}>
 
                     {/* Header — always visible, no opacity animation */}
                     <div className="features-pin-header max-w-7xl mx-auto px-6 lg:px-8 pt-2 pb-6 text-center">
@@ -169,7 +169,7 @@ export default function Features() {
                     </div>
 
                     {/* Cards grid — overflowX hidden here to clip card slides */}
-                    <div style={{ overflowX: 'hidden' }}>
+                    <div style={{}} >
                         <div className="max-w-7xl mx-auto px-6 lg:px-8 pb-4 flex flex-col gap-5">
                             {rows.map((row, rowIdx) => (
                                 <div key={rowIdx} className="feature-reveal-row">
