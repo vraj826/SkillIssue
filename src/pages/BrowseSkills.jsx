@@ -490,7 +490,7 @@ function SkillModal({ skill, onClose, authUser, authProfile }) {
                     )}
 
                     {content && (
-                        <div className="rounded-2xl border border-accent/15 bg-[#0a0d17] overflow-hidden">
+                        <div className="rounded-2xl border border-accent/15 bg-[#0a0d17] overflow-hidden h-auto">
                             {/* Editor bar with macOS dots + filename + view toggle */}
                             <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-white/[0.02]">
                                 <div className="flex items-center gap-2">
@@ -1017,6 +1017,9 @@ export default function BrowseSkills() {
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
     const { user: authUser, profile: authProfile, openAuthModal } = useAuth()
+    const chipsRef = useRef(null)
+    const [activeDot, setActiveDot] = useState(0)
+    const totalDots = 6
 
     // ── Per-source state: { [key]: { skills, loading, error } } ──────────
     // Keys: company name for official (Anthropic etc), 'OpenClaw', label for community flat
@@ -1245,6 +1248,24 @@ export default function BrowseSkills() {
             setDownloadingId(null)
         }
     }, [authUser])
+    
+    // Scroll Dots track 
+    const handleChipScroll = () => {
+        const el = chipsRef.current
+        if (!el) return
+    
+        const maxScroll = el.scrollWidth - el.clientWidth
+    
+        if (maxScroll <= 0) {
+            setActiveDot(0)
+            return
+        }
+    
+        const progress = el.scrollLeft / maxScroll
+        const index = Math.round(progress * (totalDots - 1))
+    
+        setActiveDot(index)
+    }
 
     return (
         <div className="relative min-h-screen pt-32 pb-20">
@@ -1288,7 +1309,7 @@ export default function BrowseSkills() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search skills by name, company, or author..."
-                            className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.08] focus:border-accent/40 focus:bg-white/[0.05] text-white placeholder:text-white/20 font-satoshi text-sm outline-none transition-all duration-300"
+                            className="w-full pl-11 pr-11 py-3 rounded-xl bg-white/[0.03] border border-white/[0.08] focus:border-accent/40 focus:bg-white/[0.05] text-white placeholder:text-white/20 font-satoshi text-sm outline-none transition-all duration-300"
                         />
                         {searchQuery && (
                             <button
@@ -1304,104 +1325,125 @@ export default function BrowseSkills() {
                 </div>
 
                 {/* ── Filter tabs ─────────────── */}
-                <div className="flex items-center gap-2 mb-10 overflow-x-auto pb-1 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                    {companies.map((name) => {
-                        const isActive = activeFilter === name
-                        const isOC = name === 'OpenClaw'
-                        const isSkillIssueTab = name === SKILL_ISSUE_FILTER
-                        const flatSource = COMMUNITY_FLAT_SOURCES.find((s) => s.label === name)
-                        const isCommunityTab = isOC || !!flatSource
-                        // Pipe separator before first GitHub/official tab
-                        const isFirstOfficial = name === FEATURED_SOURCES[0]?.company
-                        // Pipe separator before first community tab
-                        const isFirstCommunity = name === communityFilterIds[0]
-                        const officialSource = FEATURED_SOURCES.find((s) => s.company === name)
-
-                        const isDiscoveredTab = name === DISCOVERED_FILTER
-
-                        const count = isSkillIssueTab
-                            ? dbSkills.length
-                            : isDiscoveredTab
-                                ? indexedTotal
-                                : isOC
-                                    ? openClawSkills.length
+                <div className="relative mb-10">
+                    <div 
+                        ref={chipsRef}
+                        onScroll={handleChipScroll} 
+                        className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 scrollbar-hide" 
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                        {companies.map((name) => {
+                            const isActive = activeFilter === name
+                            const isOC = name === 'OpenClaw'
+                            const isSkillIssueTab = name === SKILL_ISSUE_FILTER
+                            const flatSource = COMMUNITY_FLAT_SOURCES.find((s) => s.label === name)
+                            const isCommunityTab = isOC || !!flatSource
+                            // Pipe separator before first GitHub/official tab
+                            const isFirstOfficial = name === FEATURED_SOURCES[0]?.company
+                            // Pipe separator before first community tab
+                            const isFirstCommunity = name === communityFilterIds[0]
+                            const officialSource = FEATURED_SOURCES.find((s) => s.company === name)
+    
+                            const isDiscoveredTab = name === DISCOVERED_FILTER
+    
+                            const count = isSkillIssueTab
+                                ? dbSkills.length
+                                : isDiscoveredTab
+                                    ? indexedTotal
+                                    : isOC
+                                        ? openClawSkills.length
+                                        : flatSource
+                                            ? communitySkills.filter((s) => s.label === name).length
+                                            : name === 'All'
+                                                ? totalCount + dbSkills.length
+                                                : officialSkills.filter((s) => s.company === name).length
+    
+                            const activeStyle = (isSkillIssueTab || name === 'All') && isActive
+                                ? 'bg-accent/15 border-accent/30 text-accent shadow-[0_0_15px_rgba(75,169,255,0.1)]'
+                                : isDiscoveredTab && isActive
+                                    ? 'bg-amber-500/15 border-amber-500/30 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
+                                    : isCommunityTab && isActive
+                                        ? 'bg-violet-500/15 border-violet-500/30 text-violet-300 shadow-[0_0_15px_rgba(139,92,246,0.1)]'
+                                        : isActive
+                                            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                                            : 'bg-white/[0.02] border-white/[0.06] text-white/40 hover:border-white/15 hover:text-white/60'
+                            const countStyle = (isSkillIssueTab || name === 'All') && isActive
+                                ? 'bg-accent/20 text-accent'
+                                : isDiscoveredTab && isActive
+                                    ? 'bg-amber-500/20 text-amber-300'
+                                    : isCommunityTab && isActive
+                                        ? 'bg-violet-500/20 text-violet-300'
+                                        : isActive
+                                            ? 'bg-emerald-500/20 text-emerald-300'
+                                            : 'bg-white/5 text-white/25'
+    
+                            const avatarSrc = isSkillIssueTab
+                                ? '/favicon.png'
+                                : isDiscoveredTab
+                                    ? null
+                                    : isOC
+                                    ? 'https://avatars.githubusercontent.com/openclaw'
                                     : flatSource
-                                        ? communitySkills.filter((s) => s.label === name).length
-                                        : name === 'All'
-                                            ? totalCount + dbSkills.length
-                                            : officialSkills.filter((s) => s.company === name).length
+                                        ? `https://avatars.githubusercontent.com/${flatSource.company}`
+                                        : officialSource
+                                            ? getOrgAvatarUrl(officialSource.repo)
+                                            : null
+    
+                            return (
+                                <div key={name} className="flex items-center gap-2 shrink-0">
+                                    {/* Pipe separator before first official tab */}
+                                    {isFirstOfficial && (
+                                        <span className="w-px h-5 bg-white/10 rounded-full mx-1 shrink-0" />
+                                    )}
+                                    {/* Pipe separator before first community tab */}
+                                    {isFirstCommunity && (
+                                        <span className="w-px h-5 bg-white/10 rounded-full mx-1 shrink-0" />
+                                    )}
+                                    {/* Pipe separator before Discovered tab */}
+                                    {isDiscoveredTab && (
+                                        <span className="w-px h-5 bg-white/10 rounded-full mx-1 shrink-0" />
+                                    )}
+                                    <button
+                                        onClick={() => setActiveFilter(name)}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-satoshi text-sm font-medium transition-all duration-300 border ${activeStyle}`}
+                                    >
+                                        {isDiscoveredTab ? (
+                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                                            </svg>
+                                        ) : avatarSrc ? (
+                                            <img
+                                                src={avatarSrc}
+                                                alt={name}
+                                                loading="lazy"
+                                                width={16}
+                                                height={16}
+                                                className={`w-4 h-4 ${isSkillIssueTab ? 'rounded-md' : isCommunityTab ? 'rounded-full' : 'rounded'}`}
+                                            />
+                                        ) : null}
+                                        {name}
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${countStyle}`}>
+                                            {count}
+                                        </span>
+                                    </button>
+                                </div>
+                            )
+                        })}
+                    </div>
 
-                        const activeStyle = (isSkillIssueTab || name === 'All') && isActive
-                            ? 'bg-accent/15 border-accent/30 text-accent shadow-[0_0_15px_rgba(75,169,255,0.1)]'
-                            : isDiscoveredTab && isActive
-                                ? 'bg-amber-500/15 border-amber-500/30 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
-                                : isCommunityTab && isActive
-                                    ? 'bg-violet-500/15 border-violet-500/30 text-violet-300 shadow-[0_0_15px_rgba(139,92,246,0.1)]'
-                                    : isActive
-                                        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
-                                        : 'bg-white/[0.02] border-white/[0.06] text-white/40 hover:border-white/15 hover:text-white/60'
-                        const countStyle = (isSkillIssueTab || name === 'All') && isActive
-                            ? 'bg-accent/20 text-accent'
-                            : isDiscoveredTab && isActive
-                                ? 'bg-amber-500/20 text-amber-300'
-                                : isCommunityTab && isActive
-                                    ? 'bg-violet-500/20 text-violet-300'
-                                    : isActive
-                                        ? 'bg-emerald-500/20 text-emerald-300'
-                                        : 'bg-white/5 text-white/25'
-
-                        const avatarSrc = isSkillIssueTab
-                            ? '/favicon.png'
-                            : isDiscoveredTab
-                                ? null
-                                : isOC
-                                ? 'https://avatars.githubusercontent.com/openclaw'
-                                : flatSource
-                                    ? `https://avatars.githubusercontent.com/${flatSource.company}`
-                                    : officialSource
-                                        ? getOrgAvatarUrl(officialSource.repo)
-                                        : null
-
-                        return (
-                            <div key={name} className="flex items-center gap-2 shrink-0">
-                                {/* Pipe separator before first official tab */}
-                                {isFirstOfficial && (
-                                    <span className="w-px h-5 bg-white/10 rounded-full mx-1 shrink-0" />
-                                )}
-                                {/* Pipe separator before first community tab */}
-                                {isFirstCommunity && (
-                                    <span className="w-px h-5 bg-white/10 rounded-full mx-1 shrink-0" />
-                                )}
-                                {/* Pipe separator before Discovered tab */}
-                                {isDiscoveredTab && (
-                                    <span className="w-px h-5 bg-white/10 rounded-full mx-1 shrink-0" />
-                                )}
-                                <button
-                                    onClick={() => setActiveFilter(name)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-satoshi text-sm font-medium transition-all duration-300 border ${activeStyle}`}
-                                >
-                                    {isDiscoveredTab ? (
-                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-                                        </svg>
-                                    ) : avatarSrc ? (
-                                        <img
-                                            src={avatarSrc}
-                                            alt={name}
-                                            loading="lazy"
-                                            width={16}
-                                            height={16}
-                                            className={`w-4 h-4 ${isSkillIssueTab ? 'rounded-md' : isCommunityTab ? 'rounded-full' : 'rounded'}`}
-                                        />
-                                    ) : null}
-                                    {name}
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${countStyle}`}>
-                                        {count}
-                                    </span>
-                                </button>
-                            </div>
-                        )
-                    })}
+                    {/* Scroll Dots track */}
+                    <div className="flex items-center justify-center gap-1.5 mt-3">
+                        {Array.from({ length: totalDots }).map((_, i) => (
+                            <div
+                                key={i}
+                                className={`rounded-full transition-all duration-300 ${
+                                    i === activeDot
+                                        ? 'w-5 h-1.5 bg-accent'
+                                        : 'w-1.5 h-1.5 bg-white/15'
+                                }`}
+                            />
+                        ))}
+                    </div>
                 </div>
 
                 {/* ── Error notices (per-source) ─────── */}
